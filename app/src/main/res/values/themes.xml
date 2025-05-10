@@ -1,0 +1,26 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.TinhTinh" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <!-- Make status bar icons visible -->
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Ensure content doesn't overlap with status bar -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <!-- Customize font -->
+        <item name="android:fontFamily">sans-serif</item>
+        <!-- Ripple effect for buttons -->
+        <item name="colorControlHighlight">@color/ripple_color</item>
+        <!-- Rounded corners for components -->
+        <item name="cornerRadius">8dp</item>
+    </style>
+</resources>
