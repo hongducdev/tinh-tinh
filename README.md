@@ -1,7 +1,5 @@
 # Tinh Tinh - Ứng Dụng Theo Dõi Biến Động Số Dư
 
-![Tinh Tinh Logo](app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)
-
 ## Giới thiệu
 
 **Tinh Tinh** là ứng dụng Android giúp theo dõi thông báo biến động số dư từ các ứng dụng ngân hàng. Ứng dụng sẽ tự động đọc các thông báo và thông báo cho bạn khi có tiền được chuyển vào tài khoản.
