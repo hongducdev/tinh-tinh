@@ -11,6 +11,8 @@ import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.text.TextUtils;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -38,8 +40,10 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements OnInitListener {
     private static final String TAG = "MainActivity";
     private static final String ENABLED_NOTIFICATION_LISTENERS = "enabled_notification_listeners";
-    private static final String PREFS_NAME = "TinhTinhPrefs";
+    public static final String PREFS_NAME = "TinhTinhPrefs";
     private static final String KEY_FIRST_LAUNCH = "first_launch";
+    public static final String KEY_NOTIFICATION_PREFIX = "notification_prefix";
+    private static final String DEFAULT_NOTIFICATION_PREFIX = "Bạn đã nhận được";
     
     private TextView amountReceivedTextView;
     private RecyclerView transactionsListView;
@@ -47,9 +51,11 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     private List<Map<String, String>> transactionsList;
     private TransactionAdapter adapter;
     private BroadcastReceiver notificationReceiver;
-
+    
+    // Đối tượng Text-to-Speech
     private TextToSpeech tts;
     
+    // Tổng số tiền nhận được
     private long totalAmountReceived = 0;
 
     @Override
@@ -57,54 +63,101 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Thiết lập toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         
+        // Khởi tạo Text-to-Speech
         tts = new TextToSpeech(this, this);
 
+        // Khởi tạo các view
         amountReceivedTextView = findViewById(R.id.amountReceivedTextView);
         transactionsListView = findViewById(R.id.transactionsListView);
         permissionButton = findViewById(R.id.permissionButton);
         
+        // Thiết lập thông báo trạng thái
         amountReceivedTextView.setText("Sẵn sàng theo dõi biến động số dư");
         
+        // Thiết lập sự kiện click cho nút yêu cầu quyền
         permissionButton.setOnClickListener(v -> {
+            // Mở màn hình cài đặt để người dùng cho phép ứng dụng đọc thông báo
             requestNotificationPermission();
         });
         
+        // Thiết lập sự kiện click cho nút kiểm tra Text-to-Speech
         MaterialButton testTtsButton = findViewById(R.id.testTtsButton);
         testTtsButton.setOnClickListener(v -> {
+            // Đọc thông báo kiểm tra
             String testMessage = "Bạn đã nhận được 2 triệu đồng";
             speakNotification(testMessage);
             showSnackbar("Đang phát: " + testMessage);
         });
         
+        // Thiết lập sự kiện click cho nút cài đặt
+        MaterialButton settingsButton = findViewById(R.id.settingsButton);
+        settingsButton.setOnClickListener(v -> {
+            // Mở màn hình cài đặt
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+        });
+        
+        // Tạo danh sách trống cho các thông báo
         transactionsList = new ArrayList<>();
         
+        // Tạo adapter cho ListView
         adapter = new TransactionAdapter(this, transactionsList);
         
+        // Thiết lập adapter cho RecyclerView
         transactionsListView.setAdapter(adapter);
         
+        // Kiểm tra xem quyền đọc thông báo đã được cấp chưa
         checkNotificationListenerPermission();
         
+        // Đăng ký BroadcastReceiver để nhận thông báo từ NotificationService
         registerNotificationReceiver();
         
+        // Kiểm tra lần đầu chạy ứng dụng
         checkFirstLaunch();
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
     
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            // Mở màn hình cài đặt
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    
+    /**
+     * Kiểm tra xem đây có phải là lần đầu chạy ứng dụng không
+     */
     private void checkFirstLaunch() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean isFirstLaunch = prefs.getBoolean(KEY_FIRST_LAUNCH, true);
         
         if (isFirstLaunch) {
+            // Lưu trạng thái đã mở ứng dụng
             SharedPreferences.Editor editor = prefs.edit();
             editor.putBoolean(KEY_FIRST_LAUNCH, false);
             editor.apply();
             
+            // Hiển thị hộp thoại chào mừng và yêu cầu quyền
             showWelcomeDialog();
         }
     }
     
+    /**
+     * Hiển thị hộp thoại chào mừng người dùng và yêu cầu cấp quyền
+     */
     private void showWelcomeDialog() {
         new MaterialAlertDialogBuilder(this)
             .setTitle("Chào mừng đến với Tinh Tinh!")
@@ -117,13 +170,21 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
             .show();
     }
     
+    /**
+     * Mở màn hình cài đặt để người dùng cấp quyền
+     */
     private void requestNotificationPermission() {
+        // Mở màn hình cài đặt để người dùng cho phép ứng dụng đọc thông báo
         Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
         startActivity(intent);
         
+        // Hiển thị hướng dẫn
         showSnackbar("Hãy bật quyền cho Tinh Tinh trong danh sách");
     }
     
+    /**
+     * Hiển thị snackbar
+     */
     private void showSnackbar(String message) {
         View rootView = findViewById(android.R.id.content);
         Snackbar.make(rootView, message, Snackbar.LENGTH_LONG).show();
@@ -132,16 +193,19 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     @Override
     protected void onResume() {
         super.onResume();
+        // Kiểm tra lại quyền khi người dùng quay lại ứng dụng
         checkNotificationListenerPermission();
     }
     
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Hủy đăng ký BroadcastReceiver khi activity bị hủy
         if (notificationReceiver != null) {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(notificationReceiver);
         }
         
+        // Giải phóng tài nguyên Text-to-Speech
         if (tts != null) {
             tts.stop();
             tts.shutdown();
@@ -151,15 +215,16 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
-            int result = tts.setLanguage(new Locale("vi", "VN"));
+            // Thiết lập ngôn ngữ cho Text-to-Speech
+            int result = tts.setLanguage(new Locale("vi", "VN")); // Tiếng Việt
             
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e(TAG, "Ngôn ngữ tiếng Việt không được hỗ trợ, sử dụng tiếng Anh");
-                tts.setLanguage(Locale.US);
+                tts.setLanguage(Locale.US); // Sử dụng tiếng Anh nếu không có tiếng Việt
             }
             
-            tts.setPitch(1.0f);
-            tts.setSpeechRate(0.9f);
+            tts.setPitch(1.0f); // Cao độ bình thường
+            tts.setSpeechRate(0.9f); // Tốc độ nói hơi chậm một chút để dễ nghe
             
             Log.d(TAG, "TextToSpeech đã được khởi tạo thành công");
         } else {
@@ -167,24 +232,33 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         }
     }
     
+    /**
+     * Phát âm thanh thông báo
+     */
     private void speakNotification(String text) {
         if (tts != null) {
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "notification_id");
         }
     }
     
+    /**
+     * Kiểm tra xem quyền đọc thông báo đã được cấp chưa
+     */
     private void checkNotificationListenerPermission() {
         String enabledNotificationListeners = Settings.Secure.getString(
                 getContentResolver(), ENABLED_NOTIFICATION_LISTENERS);
         
         String packageName = getPackageName();
         
+        // Ẩn/hiện nút yêu cầu quyền
         if (enabledNotificationListeners != null && enabledNotificationListeners.contains(packageName)) {
+            // Quyền đã được cấp
             permissionButton.setText("ĐÃ CẤP QUYỀN ĐỌC THÔNG BÁO");
             permissionButton.setBackgroundColor(getResources().getColor(R.color.money_green));
             permissionButton.setIcon(getDrawable(android.R.drawable.ic_dialog_info));
             amountReceivedTextView.setText("Đang theo dõi biến động số dư...");
         } else {
+            // Quyền chưa được cấp
             permissionButton.setText("CẤP QUYỀN ĐỌC THÔNG BÁO");
             permissionButton.setBackgroundColor(getResources().getColor(R.color.primary));
             permissionButton.setIcon(getDrawable(android.R.drawable.ic_dialog_alert));
@@ -192,6 +266,9 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         }
     }
     
+    /**
+     * Đăng ký BroadcastReceiver để nhận thông báo từ NotificationService
+     */
     private void registerNotificationReceiver() {
         notificationReceiver = new BroadcastReceiver() {
             @Override
@@ -203,39 +280,58 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
                     
                     Log.d(TAG, "Notification received: " + title + " - " + text);
                     
+                    // Xử lý thông báo
                     processNotification(title, text, packageName);
                 }
             }
         };
         
+        // Đăng ký BroadcastReceiver với LocalBroadcastManager
         IntentFilter filter = new IntentFilter(NotificationService.ACTION_NOTIFICATION_RECEIVED);
         LocalBroadcastManager.getInstance(this).registerReceiver(notificationReceiver, filter);
     }
-
+    
+    /**
+     * Xử lý thông báo nhận được
+     */
     private void processNotification(String title, String text, String packageName) {
+        // Tạo một giao dịch mới từ thông báo biến động số dư
         Map<String, String> notification = new HashMap<>();
         
+        // Lấy tên ngân hàng từ package
         String bankName = getApplicationNameFromPackage(packageName);
         notification.put("sender", bankName);
         
+        // Trích xuất số tiền từ nội dung thông báo (nếu có)
         String amountStr = extractAmount(text);
         String cleanAmount = formatAmountForSpeech(amountStr);
         notification.put("amount", amountStr);
         
+        // Lấy thời gian hiện tại
         notification.put("date", getCurrentDate());
         
+        // Lấy nội dung thông báo
         notification.put("message", text);
         
+        // Thêm thông báo mới vào đầu danh sách
         transactionsList.add(0, notification);
         
+        // Cập nhật ListView
         adapter.notifyDataSetChanged();
-
+        
+        // Lấy tiền tố thông báo từ cài đặt
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String notificationPrefix = prefs.getString(KEY_NOTIFICATION_PREFIX, DEFAULT_NOTIFICATION_PREFIX);
+        
+        // Hiển thị thông báo "Bạn đã nhận được [số tiền]"
         if (!amountStr.isEmpty()) {
-            String displayMsg = "Bạn đã nhận được " + amountStr;
+            // Hiển thị với định dạng gốc (cho Toast và TextView)
+            String displayMsg = notificationPrefix + " " + amountStr;
             showSnackbar(displayMsg);
             amountReceivedTextView.setText(displayMsg);
             
-            String speechMsg = "Bạn đã nhận được " + cleanAmount + " đồng";
+            // Đọc với định dạng đơn giản hơn
+            String speechMsg = notificationPrefix + " " + cleanAmount + " đồng";
             speakNotification(speechMsg);
         } else {
             showSnackbar("Có biến động số dư từ: " + bankName);

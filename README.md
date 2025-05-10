@@ -11,6 +11,7 @@
 -   **Đọc thông báo**: Sử dụng Text-to-Speech để đọc thông báo "Bạn đã nhận được [số tiền]"
 -   **Lịch sử giao dịch**: Lưu lại lịch sử các giao dịch nhận tiền
 -   **Giao diện hiện đại**: Thiết kế Material Design đẹp mắt và dễ sử dụng
+-   **Tùy chỉnh thông báo**: Cho phép thay đổi tiền tố thông báo theo ý thích
 
 ## Cách sử dụng
 
@@ -25,8 +26,15 @@
 
     - Nhấn nút "KIỂM TRA ĐỌC THÔNG BÁO" để kiểm tra tính năng Text-to-Speech
 
-4. **Sử dụng**:
-    - Ứng dụng sẽ tự động chạy ngầm và theo dõi các thông báo
+4. **Tùy chỉnh thông báo**:
+
+    - Nhấn nút "TÙY CHỈNH THÔNG BÁO" để mở màn hình cài đặt
+    - Thay đổi tiền tố thông báo theo ý thích (ví dụ: "Tài khoản vừa nhận", "Tiền về rồi nè", v.v.)
+    - Nhấn "Lưu cài đặt" để áp dụng thay đổi
+    - Nhấn "Đặt lại mặc định" để khôi phục về "Bạn đã nhận được"
+
+5. **Sử dụng**:
+
     - Khi có thông báo biến động số dư, ứng dụng sẽ hiển thị và đọc thông báo
     - Lịch sử giao dịch sẽ được hiển thị trong danh sách
 
@@ -60,6 +68,8 @@
 
 -   Giao diện hiện đại với Material Design
 -   Tự động xin quyền khi khởi động lần đầu
+-   Tùy chỉnh tiền tố thông báo theo sở thích cá nhân
+-   Hiển thị cải tiến, không chồng lên thanh trạng thái
 
 ## Phát triển
 

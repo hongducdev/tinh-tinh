@@ -15,6 +15,7 @@
         <item name="android:windowLightStatusBar">false</item>
         <!-- Ensure content doesn't overlap with status bar -->
         <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:fitsSystemWindows">true</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <!-- Customize font -->
         <item name="android:fontFamily">sans-serif</item>
