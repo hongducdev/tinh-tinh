@@ -93,7 +93,7 @@ public class SettingsActivity extends AppCompatActivity {
         MaterialButton saveButton = findViewById(R.id.save_settings_button);
         MaterialButton resetButton = findViewById(R.id.reset_settings_button);
         MaterialButton permissionButton = findViewById(R.id.permissionSettingButton);
-        MaterialButton testTtsButton = findViewById(R.id.testTtsSettingButton);
+        MaterialButton testTtsButton = findViewById(R.id.testTtsButton);
         
         // Khởi tạo các view mới
         backgroundServiceSwitch = findViewById(R.id.background_service_switch);
@@ -103,6 +103,7 @@ public class SettingsActivity extends AppCompatActivity {
         startTimeButton = findViewById(R.id.start_time_button);
         endTimeButton = findViewById(R.id.end_time_button);
         timeRangeContainer = findViewById(R.id.time_range_container);
+        MaterialButton testTtsInSettingsButton = findViewById(R.id.testTtsInSettingsButton);
 
         // Lấy cấu hình hiện tại
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
@@ -136,6 +137,17 @@ public class SettingsActivity extends AppCompatActivity {
 
         // Thiết lập sự kiện cho nút kiểm tra TTS
         testTtsButton.setOnClickListener(v -> {
+            String testPrefix = notificationPrefixEditText.getText().toString();
+            if (TextUtils.isEmpty(testPrefix)) {
+                testPrefix = DEFAULT_NOTIFICATION_PREFIX;
+            }
+            String testMessage = testPrefix + " 2 triệu đồng";
+            speakNotification(testMessage);
+            showSnackbar("Đang phát: " + testMessage);
+        });
+        
+        // Thiết lập sự kiện cho nút kiểm tra TTS trong phần cài đặt
+        testTtsInSettingsButton.setOnClickListener(v -> {
             String testPrefix = notificationPrefixEditText.getText().toString();
             if (TextUtils.isEmpty(testPrefix)) {
                 testPrefix = DEFAULT_NOTIFICATION_PREFIX;
