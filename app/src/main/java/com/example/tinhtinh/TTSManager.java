@@ -81,7 +81,7 @@ public class TTSManager {
                 isInitialized = true;
                 Log.d(TAG, "TTS được khởi tạo thành công");
                 
-                speak("TTS đã sẵn sàng");
+                speak("Cảm ơn bạn đã sử dụng Tinh Tinh!");
             } else {
                 Log.e(TAG, "Không thể khởi tạo TTS: " + status);
             }
