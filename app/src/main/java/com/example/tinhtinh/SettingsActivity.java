@@ -66,7 +66,6 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        // Khởi tạo TTS cho nút kiểm tra
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
                 int result = tts.setLanguage(new Locale("vi", "VN"));
@@ -76,18 +75,15 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
-        // Thiết lập toolbar
         Toolbar toolbar = findViewById(R.id.settings_toolbar);
         setSupportActionBar(toolbar);
 
-        // Hiển thị nút quay lại
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setTitle("Cài đặt");
         }
 
-        // Khởi tạo các view
         notificationPrefixEditText = findViewById(R.id.notification_prefix_edit);
         TextInputLayout notificationPrefixLayout = findViewById(R.id.notification_prefix_layout);
         MaterialButton saveButton = findViewById(R.id.save_settings_button);
@@ -95,7 +91,6 @@ public class SettingsActivity extends AppCompatActivity {
         MaterialButton permissionButton = findViewById(R.id.permissionSettingButton);
         MaterialButton testTtsButton = findViewById(R.id.testTtsButton);
         
-        // Khởi tạo các view mới
         backgroundServiceSwitch = findViewById(R.id.background_service_switch);
         MaterialButton batteryOptimizationButton = findViewById(R.id.battery_optimization_button);
         ttsEnabledSwitch = findViewById(R.id.tts_enabled_switch);
@@ -105,37 +100,31 @@ public class SettingsActivity extends AppCompatActivity {
         timeRangeContainer = findViewById(R.id.time_range_container);
         MaterialButton testTtsInSettingsButton = findViewById(R.id.testTtsInSettingsButton);
 
-        // Lấy cấu hình hiện tại
         SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
         String currentPrefix = prefs.getString(MainActivity.KEY_NOTIFICATION_PREFIX, DEFAULT_NOTIFICATION_PREFIX);
         boolean isBackgroundServiceEnabled = prefs.getBoolean(KEY_BACKGROUND_SERVICE_ENABLED, true);
         boolean isTtsEnabled = prefs.getBoolean(KEY_TTS_ENABLED, true);
         boolean isTimeLimitEnabled = prefs.getBoolean(KEY_TIME_LIMIT_ENABLED, false);
         
-        // Lấy thời gian từ SharedPreferences
         startHour = prefs.getInt(KEY_START_HOUR, 8);
         startMinute = prefs.getInt(KEY_START_MINUTE, 0);
         endHour = prefs.getInt(KEY_END_HOUR, 22);
         endMinute = prefs.getInt(KEY_END_MINUTE, 0);
         
-        // Cập nhật UI với giá trị hiện tại
         notificationPrefixEditText.setText(currentPrefix);
         backgroundServiceSwitch.setChecked(isBackgroundServiceEnabled);
         ttsEnabledSwitch.setChecked(isTtsEnabled);
         timeLimitSwitch.setChecked(isTimeLimitEnabled);
         updateTimeButtons();
         
-        // Hiển thị/ẩn phần chọn thời gian
         timeRangeContainer.setVisibility(isTimeLimitEnabled ? View.VISIBLE : View.GONE);
 
-        // Thiết lập sự kiện cho nút cấp quyền
         permissionButton.setOnClickListener(v -> {
             Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
             startActivity(intent);
             showSnackbar("Hãy bật quyền cho Tinh Tinh trong danh sách");
         });
 
-        // Thiết lập sự kiện cho nút kiểm tra TTS
         testTtsButton.setOnClickListener(v -> {
             String testPrefix = notificationPrefixEditText.getText().toString();
             if (TextUtils.isEmpty(testPrefix)) {
@@ -146,7 +135,6 @@ public class SettingsActivity extends AppCompatActivity {
             showSnackbar("Đang phát: " + testMessage);
         });
         
-        // Thiết lập sự kiện cho nút kiểm tra TTS trong phần cài đặt
         testTtsInSettingsButton.setOnClickListener(v -> {
             String testPrefix = notificationPrefixEditText.getText().toString();
             if (TextUtils.isEmpty(testPrefix)) {
@@ -157,9 +145,7 @@ public class SettingsActivity extends AppCompatActivity {
             showSnackbar("Đang phát: " + testMessage);
         });
         
-        // Thiết lập sự kiện cho công tắc bật/tắt TTS
         ttsEnabledSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // Lưu trạng thái ngay lập tức
             prefs.edit().putBoolean(KEY_TTS_ENABLED, isChecked).apply();
             
             if (isChecked) {
@@ -169,12 +155,9 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
         
-        // Thiết lập sự kiện cho công tắc giới hạn thời gian
         timeLimitSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // Lưu trạng thái ngay lập tức
             prefs.edit().putBoolean(KEY_TIME_LIMIT_ENABLED, isChecked).apply();
             
-            // Hiển thị/ẩn phần chọn thời gian
             timeRangeContainer.setVisibility(isChecked ? View.VISIBLE : View.GONE);
             
             if (isChecked) {
@@ -184,7 +167,6 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
         
-        // Thiết lập sự kiện cho nút thời gian bắt đầu
         startTimeButton.setOnClickListener(v -> {
             TimePickerDialog timePickerDialog = new TimePickerDialog(
                     this,
@@ -193,7 +175,6 @@ public class SettingsActivity extends AppCompatActivity {
                         startMinute = minute;
                         updateTimeButtons();
                         
-                        // Lưu trạng thái
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putInt(KEY_START_HOUR, startHour);
                         editor.putInt(KEY_START_MINUTE, startMinute);
@@ -208,7 +189,6 @@ public class SettingsActivity extends AppCompatActivity {
             timePickerDialog.show();
         });
         
-        // Thiết lập sự kiện cho nút thời gian kết thúc
         endTimeButton.setOnClickListener(v -> {
             TimePickerDialog timePickerDialog = new TimePickerDialog(
                     this,
@@ -217,7 +197,6 @@ public class SettingsActivity extends AppCompatActivity {
                         endMinute = minute;
                         updateTimeButtons();
                         
-                        // Lưu trạng thái
                         SharedPreferences.Editor editor = prefs.edit();
                         editor.putInt(KEY_END_HOUR, endHour);
                         editor.putInt(KEY_END_MINUTE, endMinute);
@@ -232,28 +211,22 @@ public class SettingsActivity extends AppCompatActivity {
             timePickerDialog.show();
         });
         
-        // Thiết lập sự kiện cho công tắc dịch vụ chạy ngầm
         backgroundServiceSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            // Lưu trạng thái ngay lập tức
             prefs.edit().putBoolean(KEY_BACKGROUND_SERVICE_ENABLED, isChecked).apply();
             
             if (isChecked) {
-                // Khởi động BackgroundService
                 startBackgroundService();
                 showSnackbar("Đã bật dịch vụ chạy ngầm");
             } else {
-                // Dừng BackgroundService
                 stopBackgroundService();
                 showSnackbar("Đã tắt dịch vụ chạy ngầm");
             }
         });
         
-        // Thiết lập sự kiện cho nút tối ưu hóa pin
         batteryOptimizationButton.setOnClickListener(v -> {
             openBatteryOptimizationSettings();
         });
 
-        // Lưu cài đặt
         saveButton.setOnClickListener(v -> {
             String newPrefix = notificationPrefixEditText.getText().toString();
             if (TextUtils.isEmpty(newPrefix)) {
@@ -261,7 +234,6 @@ public class SettingsActivity extends AppCompatActivity {
                 return;
             }
             
-            // Lưu vào SharedPreferences
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString(MainActivity.KEY_NOTIFICATION_PREFIX, newPrefix);
             editor.putBoolean(KEY_BACKGROUND_SERVICE_ENABLED, backgroundServiceSwitch.isChecked());
@@ -273,12 +245,10 @@ public class SettingsActivity extends AppCompatActivity {
             editor.putInt(KEY_END_MINUTE, endMinute);
             editor.apply();
             
-            // Hiển thị thông báo và đóng màn hình
             showSnackbar("Đã lưu cài đặt");
             finish();
         });
 
-        // Đặt lại mặc định
         resetButton.setOnClickListener(v -> {
             notificationPrefixEditText.setText(DEFAULT_NOTIFICATION_PREFIX);
             backgroundServiceSwitch.setChecked(true);
@@ -304,22 +274,15 @@ public class SettingsActivity extends AppCompatActivity {
             
             showSnackbar("Đã đặt lại thành cài đặt mặc định");
             
-            // Khởi động lại service
             startBackgroundService();
         });
     }
     
-    /**
-     * Cập nhật hiển thị nút thời gian
-     */
     private void updateTimeButtons() {
         startTimeButton.setText("Bắt đầu: " + formatTime(startHour, startMinute));
         endTimeButton.setText("Kết thúc: " + formatTime(endHour, endMinute));
     }
     
-    /**
-     * Định dạng thời gian từ giờ và phút
-     */
     private String formatTime(int hour, int minute) {
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, hour);
@@ -329,57 +292,42 @@ public class SettingsActivity extends AppCompatActivity {
         return sdf.format(calendar.getTime());
     }
     
-    /**
-     * Kiểm tra xem thời gian hiện tại có nằm trong khoảng thời gian đã cài đặt không
-     */
     public static boolean isInTimeRange(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
         boolean isTimeLimitEnabled = prefs.getBoolean(KEY_TIME_LIMIT_ENABLED, false);
         
-        // Nếu không bật giới hạn thời gian, luôn trả về true
         if (!isTimeLimitEnabled) {
             return true;
         }
         
-        // Lấy thời gian hiện tại
         Calendar now = Calendar.getInstance();
         int currentHour = now.get(Calendar.HOUR_OF_DAY);
         int currentMinute = now.get(Calendar.MINUTE);
         
-        // Lấy thời gian đã cài đặt
         int startHour = prefs.getInt(KEY_START_HOUR, 8);
         int startMinute = prefs.getInt(KEY_START_MINUTE, 0);
         int endHour = prefs.getInt(KEY_END_HOUR, 22);
         int endMinute = prefs.getInt(KEY_END_MINUTE, 0);
         
-        // Tính tổng phút để dễ so sánh
         int currentTime = currentHour * 60 + currentMinute;
         int startTime = startHour * 60 + startMinute;
         int endTime = endHour * 60 + endMinute;
         
-        // Kiểm tra thời gian hiện tại có nằm trong khoảng thời gian cài đặt không
         if (startTime <= endTime) {
-            // Trường hợp thường: 8:00 - 22:00
             return currentTime >= startTime && currentTime <= endTime;
         } else {
-            // Trường hợp qua đêm: 22:00 - 8:00
             return currentTime >= startTime || currentTime <= endTime;
         }
     }
     
-    /**
-     * Mở cài đặt tối ưu hóa pin
-     */
     private void openBatteryOptimizationSettings() {
         String packageName = getPackageName();
         
         try {
-            // Cách 1: Yêu cầu trực tiếp cho ứng dụng này
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
                 
                 if (pm != null && !pm.isIgnoringBatteryOptimizations(packageName)) {
-                    // Tạo Intent yêu cầu bỏ qua tối ưu hóa pin cho ứng dụng này
                     Intent intent = new Intent();
                     intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
                     intent.setData(Uri.parse("package:" + packageName));
@@ -395,7 +343,6 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             }
             
-            // Cách 2: Mở danh sách tất cả ứng dụng tối ưu hóa pin
             try {
                 Intent intent = new Intent();
                 
@@ -412,7 +359,6 @@ public class SettingsActivity extends AppCompatActivity {
                 Log.e("SettingsActivity", "Không thể mở cài đặt danh sách tối ưu hóa pin: " + e.getMessage());
             }
             
-            // Cách 3: Mở cài đặt pin tổng quát
             try {
                 Intent powerUsageIntent = new Intent(Intent.ACTION_POWER_USAGE_SUMMARY);
                 ResolveInfo resolveInfo = getPackageManager().resolveActivity(powerUsageIntent, 0);
@@ -426,7 +372,6 @@ public class SettingsActivity extends AppCompatActivity {
                 Log.e("SettingsActivity", "Không thể mở cài đặt pin: " + e.getMessage());
             }
             
-            // Cách 4: Mở cài đặt ứng dụng cho ứng dụng này
             try {
                 Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
                 intent.setData(Uri.parse("package:" + packageName));
@@ -437,7 +382,6 @@ public class SettingsActivity extends AppCompatActivity {
                 Log.e("SettingsActivity", "Không thể mở cài đặt ứng dụng: " + e.getMessage());
             }
             
-            // Nếu tất cả cách đều thất bại
             showSnackbar("Không thể mở cài đặt pin tự động. Vui lòng vào Cài đặt > Pin > Tối ưu hóa pin");
             
         } catch (Exception e) {
@@ -449,14 +393,8 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        
-        // Phương thức này giữ lại để tương thích nhưng không cần xử lý REQUEST_BATTERY_OPTIMIZATION nữa
-        // vì đã sử dụng startActivity thay vì startActivityForResult
     }
     
-    /**
-     * Khởi động service nền
-     */
     private void startBackgroundService() {
         Intent serviceIntent = new Intent(this, BackgroundService.class);
         
@@ -467,9 +405,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
     
-    /**
-     * Dừng service nền
-     */
     private void stopBackgroundService() {
         Intent serviceIntent = new Intent(this, BackgroundService.class);
         stopService(serviceIntent);

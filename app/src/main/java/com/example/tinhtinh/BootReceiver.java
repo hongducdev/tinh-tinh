@@ -14,7 +14,6 @@ public class BootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             Log.d(TAG, "Boot completed, starting background service");
             
-            // Khởi động BackgroundService
             Intent serviceIntent = new Intent(context, BackgroundService.class);
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

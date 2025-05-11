@@ -81,7 +81,6 @@ public class TTSManager {
                 isInitialized = true;
                 Log.d(TAG, "TTS được khởi tạo thành công");
                 
-                // Kiểm thử TTS để đảm bảo nó hoạt động
                 speak("TTS đã sẵn sàng");
             } else {
                 Log.e(TAG, "Không thể khởi tạo TTS: " + status);

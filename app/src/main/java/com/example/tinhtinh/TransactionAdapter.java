@@ -20,7 +20,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     private final List<Map<String, String>> transactions;
     private final OnItemDeleteListener deleteListener;
     
-    // Interface để xử lý xóa item
     public interface OnItemDeleteListener {
         void onItemDelete(int position);
     }
@@ -55,7 +54,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         
         holder.messageTextView.setText(transaction.get("message"));
         
-        // Thiết lập icon ngân hàng dựa vào tên ngân hàng
         String sender = transaction.get("sender");
         if (sender != null) {
             if (sender.contains("MB") || sender.contains("MB Bank")) {
@@ -68,7 +66,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
                 holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_compass);
                 holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.money_green));
             } else {
-                // Mặc định
                 holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_info_details);
                 holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.primary_light));
             }
@@ -97,7 +94,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             bankIconImageView = itemView.findViewById(R.id.bankIconImageView);
             deleteButton = itemView.findViewById(R.id.deleteNotificationButton);
             
-            // Thiết lập sự kiện click cho nút xóa
             deleteButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {

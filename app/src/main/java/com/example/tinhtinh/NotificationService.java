@@ -29,9 +29,9 @@ public class NotificationService extends NotificationListenerService {
         "nhận tiền", 
         "chuyển khoản", 
         "giao dịch thành công",
-        "GD:", // MB Bank thường sử dụng "GD:" cho giao dịch
-        "TK", // Tài khoản trong MB Bank
-        "SD:" // Số dư trong MB Bank
+        "GD:",
+        "TK",
+        "SD:"
     };
     
     private static final String[] BANK_PACKAGES = {
@@ -58,7 +58,6 @@ public class NotificationService extends NotificationListenerService {
         super.onCreate();
         Log.d(TAG, "Notification Listener Service created");
         
-        // Khởi tạo TTSManager
         ttsManager = TTSManager.getInstance(this);
     }
 
@@ -82,16 +81,12 @@ public class NotificationService extends NotificationListenerService {
         
         Log.d(TAG, "Notification received: " + packageName + " - " + title + " - " + text);
         
-        // Xử lý đặc biệt cho MB Bank
         boolean isMBBank = title != null && (title.contains("MB Bank") || title.contains("MBBank"));
         
-        // Kiểm tra thông báo từ ứng dụng ngân hàng
         boolean isFromBank = isFromBankApp(packageName) || isMBBank;
         
-        // Kiểm tra nội dung thông báo chứa từ khóa biến động số dư
         boolean hasBalanceKeywords = containsBalanceKeyword(title) || containsBalanceKeyword(text);
         
-        // Kiểm tra cụ thể cho MB Bank
         boolean isMBBankTransaction = isMBBank && 
                                      (text != null && 
                                      (text.contains("GD:") || 
@@ -101,23 +96,19 @@ public class NotificationService extends NotificationListenerService {
         if (isFromBank && (hasBalanceKeywords || isMBBankTransaction)) {
             Log.d(TAG, "Balance change notification detected: " + title + " - " + text);
             
-            // Trực tiếp phát TTS từ service để đảm bảo hoạt động khi màn hình tắt
             String amountStr = extractAmount(text);
             if (!amountStr.isEmpty()) {
                 String cleanAmount = formatAmountForSpeech(amountStr);
                 
-                // Lấy tiền tố thông báo từ cài đặt
                 SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
                 String notificationPrefix = prefs.getString(MainActivity.KEY_NOTIFICATION_PREFIX, "Bạn đã nhận được");
                 
-                // Phát thông báo bằng TTS
                 String speechMessage = notificationPrefix + " " + cleanAmount + " đồng";
                 ttsManager.speak(speechMessage);
                 
                 Log.d(TAG, "TTS trong service: " + speechMessage);
             }
             
-            // Gửi broadcast cho MainActivity nếu đang mở
             Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);
             intent.putExtra(EXTRA_NOTIFICATION_TITLE, title);
             intent.putExtra(EXTRA_NOTIFICATION_TEXT, text);
@@ -165,9 +156,7 @@ public class NotificationService extends NotificationListenerService {
     private String extractAmount(String text) {
         if (text == null) return "";
 
-        // Xử lý đặc biệt cho MB Bank
         if (text.contains("MB Bank") || text.contains("MBBank") || text.contains("Thông báo biến động số dư")) {
-            // Pattern cho MB Bank: GD: +2,000VND hoặc GD: +2,000VND
             Pattern mbPattern = Pattern.compile("GD:\\s*\\+?([\\d,]+)VND");
             Matcher mbMatcher = mbPattern.matcher(text);
             if (mbMatcher.find()) {
