@@ -18,12 +18,16 @@ public class NotificationService extends NotificationListenerService {
 
     private static final String[] BALANCE_KEYWORDS = {
         "biến động số dư", 
-        "thông báo số dư", 
-        "số dư tài khoản", 
+        "thông báo số dư",
+        "thông báo biến động số dư",
+        "số dư tài khoản",
         "tài khoản của bạn", 
         "nhận tiền", 
         "chuyển khoản", 
-        "giao dịch thành công"
+        "giao dịch thành công",
+        "GD:", // MB Bank thường sử dụng "GD:" cho giao dịch
+        "TK", // Tài khoản trong MB Bank
+        "SD:" // Số dư trong MB Bank
     };
     
     private static final String[] BANK_PACKAGES = {
@@ -34,6 +38,9 @@ public class NotificationService extends NotificationListenerService {
         "vn.com.techcombank.bb.app", // Techcombank
         "com.scb.scbmobilebanking", // SCB
         "com.vnpay.hdbank", // HD Bank
+        "com.mbmobile", // MB Bank
+        "com.mbbank", // MB Bank alternative package
+        "vn.mbbank.mbappcust", // MB Bank custom package
         "org.android.receiver", // Cho các tests
         "com.facebook.orca", // Messenger cho tests
         "com.facebook.katana", // Facebook cho tests
@@ -66,9 +73,23 @@ public class NotificationService extends NotificationListenerService {
         
         Log.d(TAG, "Notification received: " + packageName + " - " + title + " - " + text);
         
-        boolean isFromBank = isFromBankApp(packageName);
+        // Xử lý đặc biệt cho MB Bank
+        boolean isMBBank = title != null && (title.contains("MB Bank") || title.contains("MBBank"));
         
-        if (isFromBank && (containsBalanceKeyword(title) || containsBalanceKeyword(text))) {
+        // Kiểm tra thông báo từ ứng dụng ngân hàng
+        boolean isFromBank = isFromBankApp(packageName) || isMBBank;
+        
+        // Kiểm tra nội dung thông báo chứa từ khóa biến động số dư
+        boolean hasBalanceKeywords = containsBalanceKeyword(title) || containsBalanceKeyword(text);
+        
+        // Kiểm tra cụ thể cho MB Bank
+        boolean isMBBankTransaction = isMBBank && 
+                                     (text != null && 
+                                     (text.contains("GD:") || 
+                                      text.contains("Thông báo biến động số dư") || 
+                                      text.contains("TK")));
+        
+        if (isFromBank && (hasBalanceKeywords || isMBBankTransaction)) {
             Log.d(TAG, "Balance change notification detected: " + title + " - " + text);
             
             Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);

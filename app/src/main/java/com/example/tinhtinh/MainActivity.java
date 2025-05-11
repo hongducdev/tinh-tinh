@@ -1,6 +1,7 @@
 package com.example.tinhtinh;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -215,26 +216,48 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
-            // Thiết lập ngôn ngữ cho Text-to-Speech
             int result = tts.setLanguage(new Locale("vi", "VN")); // Tiếng Việt
             
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e(TAG, "Ngôn ngữ tiếng Việt không được hỗ trợ, sử dụng tiếng Anh");
-                tts.setLanguage(Locale.US); // Sử dụng tiếng Anh nếu không có tiếng Việt
+                Log.e(TAG, "Ngôn ngữ tiếng Việt không được hỗ trợ, hiển thị dialog cài đặt");
+                new MaterialAlertDialogBuilder(this)
+                    .setTitle("Cần cài đặt tiếng Việt")
+                    .setMessage("Ứng dụng cần giọng nói tiếng Việt để hoạt động tốt nhất. Bạn có muốn cài đặt ngay không?")
+                    .setPositiveButton("Cài đặt ngay", (dialog, which) -> {
+                        try {
+                            Intent intent = new Intent();
+                            intent.setAction("com.samsung.SMT.ACTION_MAIN");
+                            startActivity(intent);
+                        } catch (ActivityNotFoundException e) {
+                            try {
+                                Intent intent = new Intent();
+                                intent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                                startActivity(intent);
+                            } catch (ActivityNotFoundException ex) {
+                                Intent intent = new Intent();
+                                intent.setAction("android.settings.TTS_SETTINGS");
+                                startActivity(intent);
+                            }
+                        }
+                    })
+                    .setNegativeButton("Để sau", (dialog, which) -> {
+                        tts.setLanguage(Locale.US);
+                        showSnackbar("Đang sử dụng tiếng Anh tạm thời");
+                    })
+                    .setCancelable(false)
+                    .show();
+            } else {
+                tts.setPitch(1.0f);
+                tts.setSpeechRate(0.9f);
+                
+                Log.d(TAG, "TextToSpeech đã được khởi tạo thành công với tiếng Việt");
             }
-            
-            tts.setPitch(1.0f); // Cao độ bình thường
-            tts.setSpeechRate(0.9f); // Tốc độ nói hơi chậm một chút để dễ nghe
-            
-            Log.d(TAG, "TextToSpeech đã được khởi tạo thành công");
         } else {
             Log.e(TAG, "Không thể khởi tạo TextToSpeech");
+            showSnackbar("Không thể khởi tạo tính năng đọc thông báo");
         }
     }
-    
-    /**
-     * Phát âm thanh thông báo
-     */
+
     private void speakNotification(String text) {
         if (tts != null) {
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "notification_id");
@@ -295,11 +318,44 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
      * Xử lý thông báo nhận được
      */
     private void processNotification(String title, String text, String packageName) {
+        Log.d(TAG, "Xử lý thông báo: " + title + " - " + text);
+        
+        // Kiểm tra xem có phải thông báo biến động số dư không
+        boolean isBankNotification = false;
+        
+        // Danh sách từ khóa của thông báo ngân hàng
+        String[] bankKeywords = {
+            "biến động số dư", "số dư tài khoản", "tài khoản của bạn", 
+            "nhận tiền", "chuyển tiền", "giao dịch", "GD:", "TK", 
+            "MB Bank", "MBBank", "Vietcombank", "Techcombank", "BIDV", 
+            "TPBank", "VietinBank", "ACB", "Sacombank"
+        };
+        
+        // Kiểm tra title và text có chứa từ khóa ngân hàng không
+        for (String keyword : bankKeywords) {
+            if ((title != null && title.toLowerCase().contains(keyword.toLowerCase())) ||
+                (text != null && text.toLowerCase().contains(keyword.toLowerCase()))) {
+                isBankNotification = true;
+                break;
+            }
+        }
+        
+        // Nếu không phải thông báo ngân hàng thì bỏ qua
+        if (!isBankNotification) {
+            Log.d(TAG, "Không phải thông báo ngân hàng: " + title);
+            return;
+        }
+        
         // Tạo một giao dịch mới từ thông báo biến động số dư
         Map<String, String> notification = new HashMap<>();
         
-        // Lấy tên ngân hàng từ package
-        String bankName = getApplicationNameFromPackage(packageName);
+        // Lấy tên ngân hàng từ package hoặc title
+        String bankName;
+        if (title != null && (title.contains("MB Bank") || title.contains("MBBank"))) {
+            bankName = "MB Bank";
+        } else {
+            bankName = getApplicationNameFromPackage(packageName);
+        }
         notification.put("sender", bankName);
         
         // Trích xuất số tiền từ nội dung thông báo (nếu có)
@@ -333,15 +389,27 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
             // Đọc với định dạng đơn giản hơn
             String speechMsg = notificationPrefix + " " + cleanAmount + " đồng";
             speakNotification(speechMsg);
+            
+            Log.d(TAG, "Đã phát thông báo: " + speechMsg);
         } else {
             showSnackbar("Có biến động số dư từ: " + bankName);
+            Log.d(TAG, "Không trích xuất được số tiền từ: " + text);
         }
-        
-        Log.d(TAG, "Processed balance change: " + title + " - " + text);
     }
     
     private String extractAmount(String text) {
         if (text == null) return "";
+
+        // Xử lý đặc biệt cho MB Bank
+        if (text.contains("MB Bank") || text.contains("MBBank") || text.contains("Thông báo biến động số dư")) {
+            // Pattern cho MB Bank: GD: +2,000VND hoặc GD: +2,000VND
+            Pattern mbPattern = Pattern.compile("GD:\\s*\\+?([\\d,]+)VND");
+            Matcher mbMatcher = mbPattern.matcher(text);
+            if (mbMatcher.find()) {
+                String amount = mbMatcher.group(1);
+                return amount + " VND";
+            }
+        }
 
         boolean isReceiving = text.toLowerCase().contains("nhận được") || 
                               text.toLowerCase().contains("nhận tiền") ||
