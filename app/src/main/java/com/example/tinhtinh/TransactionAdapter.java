@@ -4,6 +4,7 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -17,17 +18,24 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     
     private final Context context;
     private final List<Map<String, String>> transactions;
+    private final OnItemDeleteListener deleteListener;
     
-    public TransactionAdapter(Context context, List<Map<String, String>> transactions) {
+    // Interface để xử lý xóa item
+    public interface OnItemDeleteListener {
+        void onItemDelete(int position);
+    }
+    
+    public TransactionAdapter(Context context, List<Map<String, String>> transactions, OnItemDeleteListener deleteListener) {
         this.context = context;
         this.transactions = transactions;
+        this.deleteListener = deleteListener;
     }
     
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.transaction_item, parent, false);
-        return new ViewHolder(view);
+        return new ViewHolder(view, deleteListener);
     }
     
     @Override
@@ -47,8 +55,24 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         
         holder.messageTextView.setText(transaction.get("message"));
         
-        // Thiết lập icon ngân hàng (mặc định là icon thông tin)
-        holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_info_details);
+        // Thiết lập icon ngân hàng dựa vào tên ngân hàng
+        String sender = transaction.get("sender");
+        if (sender != null) {
+            if (sender.contains("MB") || sender.contains("MB Bank")) {
+                holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_send);
+                holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.primary));
+            } else if (sender.contains("Vietcombank")) {
+                holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_agenda);
+                holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.accent));
+            } else if (sender.contains("Techcombank")) {
+                holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_compass);
+                holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.money_green));
+            } else {
+                // Mặc định
+                holder.bankIconImageView.setImageResource(android.R.drawable.ic_menu_info_details);
+                holder.bankIconImageView.setBackgroundColor(context.getResources().getColor(R.color.primary_light));
+            }
+        }
     }
     
     @Override
@@ -62,14 +86,24 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         public TextView amountTextView;
         public TextView messageTextView;
         public ImageView bankIconImageView;
+        public ImageButton deleteButton;
         
-        public ViewHolder(@NonNull View itemView) {
+        public ViewHolder(@NonNull View itemView, OnItemDeleteListener listener) {
             super(itemView);
             senderTextView = itemView.findViewById(R.id.senderTextView);
             dateTextView = itemView.findViewById(R.id.dateTextView);
             amountTextView = itemView.findViewById(R.id.amountTextView);
             messageTextView = itemView.findViewById(R.id.messageTextView);
             bankIconImageView = itemView.findViewById(R.id.bankIconImageView);
+            deleteButton = itemView.findViewById(R.id.deleteNotificationButton);
+            
+            // Thiết lập sự kiện click cho nút xóa
+            deleteButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onItemDelete(position);
+                }
+            });
         }
     }
 } 

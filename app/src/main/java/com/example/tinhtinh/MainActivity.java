@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
@@ -48,13 +50,14 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     
     private TextView amountReceivedTextView;
     private RecyclerView transactionsListView;
-    private MaterialButton permissionButton;
+    private FloatingActionButton permissionButton;
     private List<Map<String, String>> transactionsList;
     private TransactionAdapter adapter;
     private BroadcastReceiver notificationReceiver;
     
     // Đối tượng Text-to-Speech
     private TextToSpeech tts;
+    private TTSManager ttsManager;
     
     // Tổng số tiền nhận được
     private long totalAmountReceived = 0;
@@ -68,48 +71,82 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         
+        // Khởi động service nền
+        startBackgroundService();
+        
         // Khởi tạo Text-to-Speech
         tts = new TextToSpeech(this, this);
+        
+        // Khởi tạo TTSManager
+        ttsManager = TTSManager.getInstance(this);
 
         // Khởi tạo các view
         amountReceivedTextView = findViewById(R.id.amountReceivedTextView);
         transactionsListView = findViewById(R.id.transactionsListView);
         permissionButton = findViewById(R.id.permissionButton);
+        FloatingActionButton settingsFab = findViewById(R.id.settingsFab);
+        TextView statusTextView = findViewById(R.id.statusTextView);
+        TextView emptyNotificationText = findViewById(R.id.emptyNotificationText);
         
         // Thiết lập thông báo trạng thái
         amountReceivedTextView.setText("Sẵn sàng theo dõi biến động số dư");
         
-        // Thiết lập sự kiện click cho nút yêu cầu quyền
+        // Thiết lập sự kiện click cho nút yêu cầu quyền (FAB)
         permissionButton.setOnClickListener(v -> {
             // Mở màn hình cài đặt để người dùng cho phép ứng dụng đọc thông báo
             requestNotificationPermission();
         });
         
-        // Thiết lập sự kiện click cho nút kiểm tra Text-to-Speech
-        MaterialButton testTtsButton = findViewById(R.id.testTtsButton);
-        testTtsButton.setOnClickListener(v -> {
-            // Đọc thông báo kiểm tra
-            String testMessage = "Bạn đã nhận được 2 triệu đồng";
-            speakNotification(testMessage);
-            showSnackbar("Đang phát: " + testMessage);
-        });
-        
-        // Thiết lập sự kiện click cho nút cài đặt
-        MaterialButton settingsButton = findViewById(R.id.settingsButton);
-        settingsButton.setOnClickListener(v -> {
+        // Thiết lập sự kiện click cho nút cài đặt (FAB)
+        settingsFab.setOnClickListener(v -> {
             // Mở màn hình cài đặt
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
         });
         
+        // Thiết lập nút xóa tất cả thông báo
+        Button clearNotificationsButton = findViewById(R.id.clearNotificationsButton);
+        clearNotificationsButton.setOnClickListener(v -> {
+            if (!transactionsList.isEmpty()) {
+                new MaterialAlertDialogBuilder(this)
+                    .setTitle("Xóa tất cả thông báo?")
+                    .setMessage("Bạn có chắc chắn muốn xóa tất cả thông báo đã nhận không?")
+                    .setPositiveButton("Xóa tất cả", (dialog, which) -> {
+                        transactionsList.clear();
+                        adapter.notifyDataSetChanged();
+                        totalAmountReceived = 0;
+                        amountReceivedTextView.setText("0 VND");
+                        updateEmptyState();
+                        showSnackbar("Đã xóa tất cả thông báo");
+                    })
+                    .setNegativeButton("Hủy", null)
+                    .show();
+            } else {
+                showSnackbar("Không có thông báo nào để xóa");
+            }
+        });
+        
         // Tạo danh sách trống cho các thông báo
         transactionsList = new ArrayList<>();
         
-        // Tạo adapter cho ListView
-        adapter = new TransactionAdapter(this, transactionsList);
+        // Tạo adapter cho ListView với chức năng xóa thông báo đơn lẻ
+        adapter = new TransactionAdapter(this, transactionsList, (position) -> {
+            // Xóa thông báo tại vị trí position
+            if (position >= 0 && position < transactionsList.size()) {
+                transactionsList.remove(position);
+                adapter.notifyDataSetChanged();
+                updateTotalAmountFromTransactions();
+                updateEmptyState();
+                showSnackbar("Đã xóa thông báo");
+            }
+        });
         
         // Thiết lập adapter cho RecyclerView
         transactionsListView.setAdapter(adapter);
+        transactionsListView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+        
+        // Hiển thị trạng thái không có thông báo nếu cần
+        updateEmptyState();
         
         // Kiểm tra xem quyền đọc thông báo đã được cấp chưa
         checkNotificationListenerPermission();
@@ -123,18 +160,13 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
+        // Không cần inflate menu vì đã có nút cài đặt trên toolbar
         return true;
     }
     
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_settings) {
-            // Mở màn hình cài đặt
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
-            return true;
-        }
+        // Không cần xử lý menu item cài đặt nữa
         return super.onOptionsItemSelected(item);
     }
     
@@ -211,6 +243,8 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
             tts.stop();
             tts.shutdown();
         }
+        
+        // Không dừng BackgroundService khi activity bị hủy, để nó tiếp tục chạy ngầm
     }
     
     @Override
@@ -259,9 +293,8 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
     }
 
     private void speakNotification(String text) {
-        if (tts != null) {
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "notification_id");
-        }
+        // Sử dụng TTSManager để phát âm ngay cả khi màn hình tắt
+        ttsManager.speak(text);
     }
     
     /**
@@ -273,19 +306,19 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         
         String packageName = getPackageName();
         
-        // Ẩn/hiện nút yêu cầu quyền
+        // Ẩn/hiện nút yêu cầu quyền và cập nhật trạng thái
+        TextView statusTextView = findViewById(R.id.statusTextView);
         if (enabledNotificationListeners != null && enabledNotificationListeners.contains(packageName)) {
-            // Quyền đã được cấp
-            permissionButton.setText("ĐÃ CẤP QUYỀN ĐỌC THÔNG BÁO");
-            permissionButton.setBackgroundColor(getResources().getColor(R.color.money_green));
-            permissionButton.setIcon(getDrawable(android.R.drawable.ic_dialog_info));
-            amountReceivedTextView.setText("Đang theo dõi biến động số dư...");
+            // Quyền đã được cấp - ẩn nút cấp quyền
+            permissionButton.setVisibility(View.GONE);
+            statusTextView.setText("Đang lắng nghe thông báo từ các ngân hàng");
         } else {
-            // Quyền chưa được cấp
-            permissionButton.setText("CẤP QUYỀN ĐỌC THÔNG BÁO");
-            permissionButton.setBackgroundColor(getResources().getColor(R.color.primary));
-            permissionButton.setIcon(getDrawable(android.R.drawable.ic_dialog_alert));
-            amountReceivedTextView.setText("Chưa có quyền đọc thông báo");
+            // Quyền chưa được cấp - hiện nút cấp quyền
+            permissionButton.setVisibility(View.VISIBLE);
+            permissionButton.setImageDrawable(getDrawable(android.R.drawable.ic_dialog_alert));
+            permissionButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                getResources().getColor(R.color.primary)));
+            statusTextView.setText("Chưa có quyền đọc thông báo. Nhấn vào nút dưới để cấp quyền");
         }
     }
     
@@ -375,16 +408,21 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         // Cập nhật ListView
         adapter.notifyDataSetChanged();
         
+        // Cập nhật hiển thị trạng thái trống
+        updateEmptyState();
+        
         // Lấy tiền tố thông báo từ cài đặt
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String notificationPrefix = prefs.getString(KEY_NOTIFICATION_PREFIX, DEFAULT_NOTIFICATION_PREFIX);
+        
+        // Cập nhật tổng số tiền
+        updateTotalAmountFromTransactions();
         
         // Hiển thị thông báo "Bạn đã nhận được [số tiền]"
         if (!amountStr.isEmpty()) {
             // Hiển thị với định dạng gốc (cho Toast và TextView)
             String displayMsg = notificationPrefix + " " + amountStr;
             showSnackbar(displayMsg);
-            amountReceivedTextView.setText(displayMsg);
             
             // Đọc với định dạng đơn giản hơn
             String speechMsg = notificationPrefix + " " + cleanAmount + " đồng";
@@ -535,5 +573,52 @@ public class MainActivity extends AppCompatActivity implements OnInitListener {
         }
         
         updateAmountDisplay();
+    }
+    
+    /**
+     * Cập nhật hiển thị khi không có thông báo
+     */
+    private void updateEmptyState() {
+        TextView emptyNotificationText = findViewById(R.id.emptyNotificationText);
+        if (transactionsList.isEmpty()) {
+            emptyNotificationText.setVisibility(View.VISIBLE);
+            transactionsListView.setVisibility(View.GONE);
+        } else {
+            emptyNotificationText.setVisibility(View.GONE);
+            transactionsListView.setVisibility(View.VISIBLE);
+        }
+    }
+    
+    /**
+     * Khởi động service nền để ứng dụng tiếp tục hoạt động khi màn hình tắt
+     */
+    private void startBackgroundService() {
+        // Kiểm tra cài đặt dịch vụ chạy ngầm
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean isBackgroundServiceEnabled = prefs.getBoolean(SettingsActivity.KEY_BACKGROUND_SERVICE_ENABLED, true);
+        
+        if (!isBackgroundServiceEnabled) {
+            Log.d(TAG, "Dịch vụ chạy ngầm đã bị tắt trong cài đặt");
+            return;
+        }
+        
+        Intent serviceIntent = new Intent(this, BackgroundService.class);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
+        
+        Log.d(TAG, "Đã khởi động BackgroundService");
+    }
+    
+    /**
+     * Dừng service nền (chỉ gọi khi cần dừng hẳn ứng dụng)
+     */
+    private void stopBackgroundService() {
+        Intent serviceIntent = new Intent(this, BackgroundService.class);
+        stopService(serviceIntent);
+        Log.d(TAG, "Đã dừng BackgroundService");
     }
 }

@@ -2,12 +2,16 @@ package com.example.tinhtinh;
 
 import android.app.Notification;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class NotificationService extends NotificationListenerService {
     private static final String TAG = "NotificationService";
@@ -47,10 +51,15 @@ public class NotificationService extends NotificationListenerService {
         "com.google.android.apps.messaging" // Tin nhắn cho tests
     };
     
+    private TTSManager ttsManager;
+    
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Notification Listener Service created");
+        
+        // Khởi tạo TTSManager
+        ttsManager = TTSManager.getInstance(this);
     }
 
     @Override
@@ -92,6 +101,23 @@ public class NotificationService extends NotificationListenerService {
         if (isFromBank && (hasBalanceKeywords || isMBBankTransaction)) {
             Log.d(TAG, "Balance change notification detected: " + title + " - " + text);
             
+            // Trực tiếp phát TTS từ service để đảm bảo hoạt động khi màn hình tắt
+            String amountStr = extractAmount(text);
+            if (!amountStr.isEmpty()) {
+                String cleanAmount = formatAmountForSpeech(amountStr);
+                
+                // Lấy tiền tố thông báo từ cài đặt
+                SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+                String notificationPrefix = prefs.getString(MainActivity.KEY_NOTIFICATION_PREFIX, "Bạn đã nhận được");
+                
+                // Phát thông báo bằng TTS
+                String speechMessage = notificationPrefix + " " + cleanAmount + " đồng";
+                ttsManager.speak(speechMessage);
+                
+                Log.d(TAG, "TTS trong service: " + speechMessage);
+            }
+            
+            // Gửi broadcast cho MainActivity nếu đang mở
             Intent intent = new Intent(ACTION_NOTIFICATION_RECEIVED);
             intent.putExtra(EXTRA_NOTIFICATION_TITLE, title);
             intent.putExtra(EXTRA_NOTIFICATION_TEXT, text);
@@ -134,5 +160,103 @@ public class NotificationService extends NotificationListenerService {
         }
         
         return false;
+    }
+    
+    private String extractAmount(String text) {
+        if (text == null) return "";
+
+        // Xử lý đặc biệt cho MB Bank
+        if (text.contains("MB Bank") || text.contains("MBBank") || text.contains("Thông báo biến động số dư")) {
+            // Pattern cho MB Bank: GD: +2,000VND hoặc GD: +2,000VND
+            Pattern mbPattern = Pattern.compile("GD:\\s*\\+?([\\d,]+)VND");
+            Matcher mbMatcher = mbPattern.matcher(text);
+            if (mbMatcher.find()) {
+                String amount = mbMatcher.group(1);
+                return amount + " VND";
+            }
+        }
+
+        boolean isReceiving = text.toLowerCase().contains("nhận được") || 
+                              text.toLowerCase().contains("nhận tiền") ||
+                              text.toLowerCase().contains("tiền vào") ||
+                              text.toLowerCase().contains("được chuyển") ||
+                              text.toLowerCase().contains("cộng") ||
+                              text.toLowerCase().contains("+") ||
+                              text.toLowerCase().contains("tăng");
+        
+        if (!isReceiving) {
+            boolean isPaying = text.toLowerCase().contains("chuyển tiền") ||
+                              text.toLowerCase().contains("thanh toán") ||
+                              text.toLowerCase().contains("tiền ra") ||
+                              text.toLowerCase().contains("trừ") ||
+                              text.toLowerCase().contains("-") ||
+                              text.toLowerCase().contains("giảm");
+            
+            if (isPaying) {
+                return "";
+            }
+        }
+        
+        String[] regexPatterns = {
+            "(\\+?\\s*\\d{1,3}([,.\\s]\\d{3})+)\\s*(VND|₫|đồng)",
+            "(\\+?\\s*\\d+)\\s*(VND|₫|đồng)"
+        };
+        
+        for (String pattern : regexPatterns) {
+            Pattern r = Pattern.compile(pattern);
+            Matcher m = r.matcher(text);
+            
+            if (m.find()) {
+                return m.group(0);
+            }
+        }
+        
+        return "";
+    }
+    
+    private String formatAmountForSpeech(String amountStr) {
+        if (amountStr.isEmpty()) return "";
+        
+        String cleanAmount = amountStr.replaceAll("[^0-9]", "");
+        
+        try {
+            long amount = Long.parseLong(cleanAmount);
+            
+            if (amount == 0) return "không đồng";
+            
+            if (amount >= 1000000000) {
+                long billions = amount / 1000000000;
+                long remainder = (amount % 1000000000) / 1000000;
+                
+                if (remainder > 0) {
+                    return billions + " tỷ " + remainder + " triệu";
+                } else {
+                    return billions + " tỷ";
+                }
+            } else if (amount >= 1000000) {
+                long millions = amount / 1000000;
+                long remainder = (amount % 1000000) / 1000;
+                
+                if (remainder > 0) {
+                    return millions + " triệu " + remainder + " nghìn";
+                } else {
+                    return millions + " triệu";
+                }
+            } else if (amount >= 1000) {
+                long thousands = amount / 1000;
+                long remainder = amount % 1000;
+                
+                if (remainder > 0) {
+                    return thousands + " nghìn " + remainder;
+                } else {
+                    return thousands + " nghìn";
+                }
+            } else {
+                return amount + "";
+            }
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "Lỗi khi định dạng số tiền: " + e.getMessage());
+            return cleanAmount;
+        }
     }
 } 

@@ -20,7 +20,19 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
             app:title="Tinh Tinh"
-            app:titleTextColor="@color/white"/>
+            app:titleTextColor="@color/white">
+            
+            <ImageView
+                android:id="@+id/settingsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginEnd="16dp"
+                android:src="@android:drawable/ic_menu_manage"
+                android:contentDescription="Cài đặt"
+                app:tint="@color/white"
+                android:visibility="gone" />
+        </androidx.appcompat.widget.Toolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Nội dung chính -->
@@ -31,31 +43,31 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- Card hiển thị thông báo số tiền -->
+            <!-- Card hiển thị trạng thái và số tiền -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                app:cardCornerRadius="10dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="4dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp"
-                    android:background="@color/card_background">
+                    android:padding="20dp"
+                    android:background="@color/primary">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Thông Báo Nhận Tiền"
+                        android:text="Tổng tiền nhận được"
                         android:textSize="16sp"
-                        android:textColor="@color/text_secondary"/>
+                        android:textColor="@color/white"/>
 
                     <TextView
                         android:id="@+id/amountReceivedTextView"
@@ -64,62 +76,65 @@
                         android:text="Đang theo dõi biến động số dư..."
                         android:textSize="24sp"
                         android:textStyle="bold"
-                        android:textColor="@color/money_green"
+                        android:textColor="@color/white"
                         android:layout_marginTop="8dp"/>
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/permissionButton"
+                    <TextView
+                        android:id="@+id/statusTextView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="CẤP QUYỀN ĐỌC THÔNG BÁO"
-                        android:backgroundTint="@color/primary"
+                        android:text="Đang lắng nghe thông báo từ các ngân hàng"
+                        android:textSize="14sp"
                         android:textColor="@color/white"
-                        android:padding="12dp"
-                        android:layout_marginTop="16dp"
-                        app:cornerRadius="8dp"
-                        app:icon="@android:drawable/ic_menu_share"
-                        app:iconGravity="textStart"/>
-                        
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/testTtsButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="KIỂM TRA ĐỌC THÔNG BÁO"
-                        android:backgroundTint="@color/accent"
-                        android:textColor="@color/white"
-                        android:padding="12dp"
-                        android:layout_marginTop="8dp"
-                        app:cornerRadius="8dp"
-                        app:icon="@android:drawable/ic_menu_call"
-                        app:iconGravity="textStart"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-                        
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/settingsButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="TÙY CHỈNH THÔNG BÁO"
-                        android:backgroundTint="@color/primary_light"
-                        android:textColor="@color/text_primary"
-                        android:padding="12dp"
-                        android:layout_marginTop="8dp"
-                        app:cornerRadius="8dp"
-                        app:icon="@android:drawable/ic_menu_manage"
-                        app:iconGravity="textStart"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                        android:alpha="0.8"
+                        android:layout_marginTop="8dp"/>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Tiêu đề lịch sử giao dịch -->
-            <TextView
+            <!-- Tiêu đề lịch sử giao dịch với nút xóa -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Lịch Sử Giao Dịch Nhận Tiền"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp"
-                android:layout_marginTop="8dp"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Lịch Sử Biến Động Số Dư"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/clearNotificationsButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Xóa hết"
+                    android:textSize="12sp"
+                    android:minWidth="0dp"
+                    android:minHeight="0dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    app:cornerRadius="16dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            </LinearLayout>
+
+            <!-- Đánh dấu trạng thái không có thông báo -->
+            <TextView
+                android:id="@+id/emptyNotificationText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Không có thông báo nào"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:padding="32dp"
+                android:visibility="gone"/>
 
             <!-- Danh sách giao dịch -->
             <androidx.recyclerview.widget.RecyclerView
@@ -131,4 +146,28 @@
                 android:nestedScrollingEnabled="false"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- Floating Action Button để hiển thị trạng thái quyền -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/permissionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="Trạng thái quyền"
+        app:srcCompat="@android:drawable/ic_dialog_alert"
+        app:backgroundTint="@color/primary"
+        app:tint="@color/white"/>
+        
+    <!-- Floating Action Button cho cài đặt -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/settingsFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:contentDescription="Mở cài đặt"
+        app:srcCompat="@android:drawable/ic_menu_manage"
+        app:backgroundTint="@color/accent"
+        app:tint="@color/white"/>
 </androidx.coordinatorlayout.widget.CoordinatorLayout> 
